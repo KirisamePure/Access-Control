@@ -153,6 +153,36 @@ public final class AccessControlClientTest implements FabricClientGameTest {
                 client.inGameHud.getChatHud().clear(false);
             });
             context.takeScreenshot("subway_gate_card_open");
+            context.waitTicks(25);
+            BlockPos adjacent = gate.east(3);
+            int before = context.computeOnClient(client -> ((SlidingDoorRenderer.State) client.getBlockEntityRenderDispatcher()
+                    .getRenderState(client.world.getBlockEntity(gate.east()), 1, null)).faces().size());
+            server.runOnServer(s -> {
+                var state = AccessControl.SUBWAY_GATE.getDefaultState().with(DoorBlock.FACING, Direction.SOUTH);
+                s.getOverworld().setBlockState(adjacent, state);
+                AccessControl.SUBWAY_GATE.onPlaced(s.getOverworld(), adjacent, state, null,
+                        new net.minecraft.item.ItemStack(AccessControl.SUBWAY_GATE));
+            });
+            context.waitTicks(10);
+            context.runOnClient(client -> {
+                var cabinet = gate.east();
+                if (!SubwayGateBlock.connectsOutward(client.world.getBlockState(cabinet), client.world, cabinet))
+                    throw new AssertionError("Client did not detect neighboring lane");
+                var state = (SlidingDoorRenderer.State) client.getBlockEntityRenderDispatcher()
+                        .getRenderState(client.world.getBlockEntity(cabinet), 1, null);
+                if (state.faces().size() <= before) throw new AssertionError("Connector has collision but no visible model");
+            });
+            server.runCommand("tp @a 6.5 91 -1.5 180 6");
+            context.waitTicks(5);
+            context.runOnClient(client -> client.inGameHud.getChatHud().clear(false));
+            context.takeScreenshot("adjacent_gates_connected");
+            server.runOnServer(s -> s.getOverworld().breakBlock(adjacent, false));
+            context.waitTicks(5);
+            context.runOnClient(client -> {
+                var state = (SlidingDoorRenderer.State) client.getBlockEntityRenderDispatcher()
+                        .getRenderState(client.world.getBlockEntity(gate.east()), 1, null);
+                if (state.faces().size() != before) throw new AssertionError("Connector did not disappear when adjacent gate was removed");
+            });
         }
     }
 }

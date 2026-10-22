@@ -47,6 +47,19 @@ public final class SubwayGateBlock extends SlidingDoorBlock {
         BlockPos lower = state.get(HALF) == DoubleBlockHalf.UPPER ? pos.down() : pos;
         return lower.offset(state.get(FACING).rotateYClockwise(), -state.get(PART).offset);
     }
+    /** Position-dependent, so existing lanes join without replacing their saved states. */
+    public static boolean connectsOutward(BlockState state, BlockView world, BlockPos pos) {
+        Part part = state.get(PART);
+        if (part == Part.CENTER) return false;
+        Direction outward = outward(state);
+        BlockState neighbor = world.getBlockState(pos.offset(outward));
+        return neighbor.isOf(state.getBlock()) && neighbor.get(PART) != Part.CENTER
+                && neighbor.get(HALF) == state.get(HALF) && outward(neighbor) == outward.getOpposite();
+    }
+    private static Direction outward(BlockState state) {
+        Direction right = state.get(FACING).rotateYClockwise();
+        return state.get(PART) == Part.RIGHT ? right : right.getOpposite();
+    }
     @Override public BlockState getPlacementState(ItemPlacementContext context) {
         BlockState state = super.getPlacementState(context);
         if (state == null) return null;
@@ -157,6 +170,14 @@ public final class SubwayGateBlock extends SlidingDoorBlock {
             case RIGHT -> Block.createCuboidShape(0, 0, 1, 8, upper ? 6 : 16, 15);
             case CENTER -> Block.createCuboidShape(0, upper ? 0 : 4, 7, 16, upper ? 4 : 16, 9);
         };
+        if (connectsOutward(state, world, pos)) {
+            // Join the outer half of each cabinet; the two halves close the bypass
+            // between neighboring lanes, even while either lane is open.
+            VoxelShape connector = state.get(PART) == Part.LEFT
+                    ? Block.createCuboidShape(0, 0, 1, 8, upper ? 6 : 16, 15)
+                    : Block.createCuboidShape(8, 0, 1, 16, upper ? 6 : 16, 15);
+            shape = VoxelShapes.union(shape, connector);
+        }
         return rotate(shape, state.get(FACING));
     }
     @Override protected VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {

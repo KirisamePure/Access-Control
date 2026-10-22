@@ -41,8 +41,16 @@ public final class SlidingDoorRenderer implements BlockEntityRenderer<SlidingDoo
         state.translucent = door.isOf(AccessControl.GLASS_DOOR);
         if (door.isOf(AccessControl.SUBWAY_GATE)) {
             switch (door.get(SubwayGateBlock.PART)) {
-                case LEFT -> append(entity, door, AccessControl.GATE_LEFT_POST, 0, null, faces);
-                case RIGHT -> append(entity, door, AccessControl.GATE_RIGHT_POST, 0, null, faces);
+                case LEFT -> {
+                    append(entity, door, AccessControl.GATE_LEFT_POST, 0, null, faces);
+                    if (entity.getWorld() != null && SubwayGateBlock.connectsOutward(door, entity.getWorld(), entity.getPos()))
+                        append(entity, door, AccessControl.GATE_LEFT_LINK, 0, null, faces);
+                }
+                case RIGHT -> {
+                    append(entity, door, AccessControl.GATE_RIGHT_POST, 0, null, faces);
+                    if (entity.getWorld() != null && SubwayGateBlock.connectsOutward(door, entity.getWorld(), entity.getPos()))
+                        append(entity, door, AccessControl.GATE_RIGHT_LINK, 0, null, faces);
+                }
                 case CENTER -> {
                     append(entity, door, AccessControl.GATE_LEFT_WING, slide * .5f, facing.rotateYCounterclockwise(), faces);
                     append(entity, door, AccessControl.GATE_RIGHT_WING, slide * .5f, facing.rotateYClockwise(), faces);

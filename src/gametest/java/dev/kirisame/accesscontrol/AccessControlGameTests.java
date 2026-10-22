@@ -185,4 +185,45 @@ public final class AccessControlGameTests {
         check(context, context.getWorld().getBlockState(context.getAbsolutePos(new BlockPos(2, 3, 3))).isOf(Blocks.DIAMOND_BLOCK), "Overwrote side obstruction");
         context.complete();
     }
+
+    @GameTest public void adjacentGatesCloseBypassAndRemainIndependent(TestContext context) {
+        var world = context.getWorld();
+        for (Direction facing : new Direction[]{Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST}) {
+            for (boolean reversed : new boolean[]{false, true}) {
+                BlockPos a = context.getAbsolutePos(switch (facing) {
+                    case SOUTH -> new BlockPos(5, 2, 2);
+                    case WEST -> new BlockPos(2, 2, 5);
+                    default -> new BlockPos(2, 2, 2);
+                });
+                Direction right = facing.rotateYClockwise();
+                BlockPos b = a.offset(right, 3);
+                BlockPos cabinet = a.offset(right);
+                var gap = cabinet.toCenterPos().add(right.getOffsetX() * .5, 0, right.getOffsetZ() * .5);
+                Box player = new Box(gap.x - .3, a.getY(), gap.z - .3, gap.x + .3, a.getY() + 1.8, gap.z + .3);
+                placeGate(context, a, facing);
+                check(context, world.isSpaceEmpty(null, player), "Standalone cabinet unexpectedly fills outside space");
+                placeGate(context, b, reversed ? facing.getOpposite() : facing);
+                check(context, SubwayGateBlock.connectsOutward(world.getBlockState(cabinet), world, cabinet), "Cabinets did not connect");
+                check(context, !world.isSpaceEmpty(null, player), "Player can bypass adjacent gates: " + facing + "/" + reversed);
+                world.setBlockState(a.offset(facing), Blocks.REDSTONE_BLOCK.getDefaultState());
+                check(context, world.getBlockState(a).get(DoorBlock.OPEN), "Powered lane failed to open");
+                check(context, !world.getBlockState(b).get(DoorBlock.OPEN), "Connection opened the neighboring lane");
+                check(context, !world.isSpaceEmpty(null, player), "Opening a lane removed the bypass barrier");
+                world.setBlockState(a.offset(facing), Blocks.AIR.getDefaultState());
+                world.breakBlock(b, false);
+                check(context, world.getBlockState(a).isOf(AccessControl.SUBWAY_GATE), "Removing a lane destroyed its neighbor");
+                check(context, !SubwayGateBlock.connectsOutward(world.getBlockState(cabinet), world, cabinet), "Connector remained after removal");
+                check(context, world.isSpaceEmpty(null, player), "Stale invisible collision after removal");
+                world.breakBlock(a, false);
+            }
+        }
+        context.complete();
+    }
+    private void placeGate(TestContext context, BlockPos center, Direction facing) {
+        var world = context.getWorld();
+        for (int i = -1; i <= 1; i++) world.setBlockState(center.offset(facing.rotateYClockwise(), i).down(), Blocks.IRON_BLOCK.getDefaultState());
+        var state = AccessControl.SUBWAY_GATE.getDefaultState().with(DoorBlock.FACING, facing);
+        world.setBlockState(center, state);
+        AccessControl.SUBWAY_GATE.onPlaced(world, center, state, null, new ItemStack(AccessControl.SUBWAY_GATE));
+    }
 }

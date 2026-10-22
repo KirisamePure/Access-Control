@@ -358,6 +358,12 @@ def make_expansion():
         panel_models(f'gate_{side}_post', {'body': 'accesscontrol:block/gate_body',
             'front_bottom': 'accesscontrol:block/gate_front_bottom', 'front_top': 'accesscontrol:block/gate_front_top',
             'scanner': 'accesscontrol:block/gate_scanner'}, geom)
+        # Matching metal fills the outward half only when another lane is adjacent.
+        # Unlike a rear filler wall, this is part of the cabinet and its collision.
+        link_x0, link_x1 = (0, 8) if side == 'left' else (8, 16)
+        panel_models(f'gate_{side}_link', {'body': 'accesscontrol:block/gate_body'}, {
+            'lower': [box([link_x0, 0, 1], [link_x1, 16, 15], '#body')],
+            'upper': [box([link_x0, 0, 1], [link_x1, 6, 15], '#body')]})
         wing = Image.new('RGBA', (32, 32)); d = ImageDraw.Draw(wing)
         d.polygon([(0, 0), (31, 12), (26, 20), (0, 31)], fill='#f5cb50', outline='#bc8f29', width=1)
         d.line((3, 3, 27, 13), fill='#ffe9a4')
