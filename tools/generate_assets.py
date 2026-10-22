@@ -272,6 +272,150 @@ def make_sounds():
         'sounds': ['accesscontrol:' + name]} for name in ['reader_granted', 'reader_denied', 'pneumatic_open', 'pneumatic_close']})
 
 
+def make_expansion():
+    def panel_models(panel, textures, elements_by_half):
+        variants = {}
+        for half, part in [('lower', 'bottom'), ('upper', 'top')]:
+            model(f'block/{panel}_{part}', {'parent': 'minecraft:block/block', 'ambientocclusion': False,
+                'textures': textures | {'particle': textures.get('panel', textures.get('body'))},
+                'elements': elements_by_half[half]})
+            for facing, rot in [('north', 0), ('east', 90), ('south', 180), ('west', 270)]:
+                variants[f'facing={facing},half={half}'] = {'model': f'accesscontrol:block/{panel}_{part}', 'y': rot}
+        write_json(ASSETS / 'blockstates' / (panel + '.json'), {'variants': variants})
+        return variants
+
+    for name, panel, glass in [('glass_sliding_tech_door', 'glass_tech_panel', True),
+                               ('industrial_sliding_door', 'industrial_panel', False)]:
+        im = Image.new('RGBA', (32, 64), (83, 197, 219, 42) if glass else '#d7dedf')
+        d = ImageDraw.Draw(im)
+        if glass:
+            d.rectangle((0, 0, 31, 63), outline='#608999')
+            d.line((1, 1, 1, 62), fill='#6bf4ef')
+            d.line((30, 1, 30, 62), fill='#6bf4ef')
+            for y in (5, 59): d.line((4, y, 27, y), fill='#c3ffff', width=1)
+            for y in (12, 40):
+                d.line((5, y + 4, 14, y), fill=(201, 255, 255, 100), width=1)
+                d.line((17, y + 5, 26, y + 1), fill=(201, 255, 255, 75), width=1)
+            d.rectangle((24, 29, 27, 35), fill='#174c60', outline='#80fff3')
+        else:
+            d.rectangle((0, 0, 31, 63), outline='#344653', width=2)
+            for x in (3, 26): d.rectangle((x, 3, x + 2, 60), fill='#f3a542')
+            d.rectangle((8, 6, 23, 26), fill='#223443', outline='#7894a1')
+            for y in (10, 14, 18, 22): d.line((10, y, 21, y), fill='#5e7d8a')
+            d.polygon([(8, 33), (16, 38), (24, 33), (24, 38), (16, 43), (8, 38)], fill='#ed9735')
+            d.polygon([(8, 43), (16, 48), (24, 43), (24, 48), (16, 53), (8, 48)], fill='#344653')
+            d.line((7, 30, 24, 30), fill='#324452', width=2)
+            for x in (4, 27):
+                for y in (3, 29, 60): d.point((x, y), fill='#ffffff')
+        geometry = {}
+        for half, part, region in [('lower', 'bottom', (0, 32, 32, 64)), ('upper', 'top', (0, 0, 32, 32))]:
+            texture(f'block/{name}_{part}', im.crop(region))
+            elem = box([0, 0, 14 if glass else 13], [16, 16, 15.5 if glass else 16], '#' + part)
+            for side in ['north', 'south']: elem['faces'][side]['uv'] = [0, 0, 16, 16]
+            geometry[half] = [elem]
+        variants = panel_models(panel, {'bottom': f'accesscontrol:block/{name}_bottom',
+            'top': f'accesscontrol:block/{name}_top', 'panel': f'accesscontrol:block/{name}_bottom'}, geometry)
+        write_json(ASSETS / 'blockstates' / (name + '.json'), {'variants': variants})
+        icon = Image.new('RGBA', (32, 32)); icon.alpha_composite(im.resize((14, 28), Image.Resampling.NEAREST), (9, 2))
+        texture('item/' + name, icon)
+        model('item/' + name, {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'accesscontrol:item/' + name}})
+        item(name)
+
+    body = Image.new('RGBA', (32, 32), '#9eafb6'); d = ImageDraw.Draw(body)
+    for y in range(1, 32, 4): d.line((0, y, 31, y), fill='#abbac0')
+    texture('block/gate_body', body)
+    for part in ['bottom', 'top']:
+        im = Image.new('RGBA', (32, 32), '#0d1720'); d = ImageDraw.Draw(im)
+        d.rectangle((0, 0, 31, 31), outline='#344654', width=2)
+        if part == 'bottom':
+            d.ellipse((9, 7, 23, 22), fill='#162d4e')
+            d.polygon([(16, 9), (22, 15), (18, 15), (18, 21), (14, 21), (14, 15), (10, 15)], fill='#9de9ff')
+            d.line((3, 29, 28, 29), fill='#406276')
+        else:
+            d.rectangle((4, 1, 27, 9), fill='#c4cfd0', outline='#536977')
+            d.rectangle((7, 3, 24, 7), fill='#091820')
+            d.line((9, 5, 22, 5), fill='#60dfd5')
+        texture('block/gate_front_' + part, im)
+    scanner = Image.new('RGBA', (32, 32), '#0e1c27'); d = ImageDraw.Draw(scanner)
+    d.rectangle((6, 6, 25, 25), outline='#5f929a', width=2)
+    for r in (5, 10, 15): d.arc((10 - r//3, 10 - r//3, 18 + r//2, 18 + r//2), 210, 340, fill='#72f7e0', width=1)
+    texture('block/gate_scanner', scanner)
+    for side in ['left', 'right']:
+        x0, x1 = (8, 16) if side == 'left' else (0, 8)
+        geom = {}
+        for half, part in [('lower', 'bottom'), ('upper', 'top')]:
+            height = 16 if half == 'lower' else 6
+            elems = [box([x0, 0, 1], [x1, height, 15], '#body')]
+            for front, z0, z1 in [('north', .94, 1), ('south', 15, 15.06)]:
+                e = box([x0 + .6, .1, z0], [x1 - .6, height, z1], '#front_' + part)
+                e['faces'][front]['uv'] = [0, 0, 16, 16 if half == 'lower' else 6]
+                elems.append(e)
+            if half == 'upper':
+                e = box([x0 + 1, 6.01, 3], [x1 - 1, 6.03, 13], '#scanner')
+                e['faces']['up']['uv'] = [0, 0, 16, 16]
+                elems.append(e)
+            geom[half] = elems
+        panel_models(f'gate_{side}_post', {'body': 'accesscontrol:block/gate_body',
+            'front_bottom': 'accesscontrol:block/gate_front_bottom', 'front_top': 'accesscontrol:block/gate_front_top',
+            'scanner': 'accesscontrol:block/gate_scanner'}, geom)
+        wing = Image.new('RGBA', (32, 32)); d = ImageDraw.Draw(wing)
+        d.polygon([(0, 0), (31, 12), (26, 20), (0, 31)], fill='#f5cb50', outline='#bc8f29', width=1)
+        d.line((3, 3, 27, 13), fill='#ffe9a4')
+        if side == 'right': wing = wing.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        geom = {}
+        for half, part in [('lower', 'bottom'), ('upper', 'top')]:
+            im = Image.new('RGBA', (32, 32))
+            im.paste(wing.crop((0, 8, 32, 32)) if half == 'lower' else wing.crop((0, 0, 32, 8)), (0, 0))
+            texture(f'block/gate_{side}_wing_{part}', im)
+            e = box([0 if side == 'left' else 8, 4 if half == 'lower' else 0, 7],
+                    [8 if side == 'left' else 16, 16 if half == 'lower' else 4, 9], '#' + part)
+            for face in ['north', 'south']: e['faces'][face]['uv'] = [0, 0, 16, 12 if half == 'lower' else 4]
+            geom[half] = [e]
+        panel_models(f'gate_{side}_wing', {'bottom': f'accesscontrol:block/gate_{side}_wing_bottom',
+            'top': f'accesscontrol:block/gate_{side}_wing_top', 'panel': f'accesscontrol:block/gate_{side}_wing_bottom'}, geom)
+    variants = {}
+    for half, part in [('lower', 'bottom'), ('upper', 'top')]:
+        model('block/gate_center_' + part, {'textures': {'particle': 'accesscontrol:block/gate_body'}, 'elements': []})
+        for section in ['left', 'center', 'right']:
+            for facing, rot in [('north', 0), ('east', 90), ('south', 180), ('west', 270)]:
+                m = 'gate_center' if section == 'center' else f'gate_{section}_post'
+                variants[f'facing={facing},half={half},part={section}'] = {'model': f'accesscontrol:block/{m}_{part}', 'y': rot}
+    write_json(ASSETS / 'blockstates/subway_gate.json', {'variants': variants})
+    icon = Image.new('RGBA', (32, 32)); d = ImageDraw.Draw(icon)
+    for x in (2, 23):
+        d.rectangle((x, 4, x + 6, 28), fill='#acb8bc', outline='#516572')
+        d.rectangle((x + 1, 6, x + 5, 24), fill='#10202b')
+        d.line((x + 2, 15, x + 4, 15), fill='#8bdeff')
+    d.polygon([(9, 12), (15, 16), (9, 23)], fill='#f5cb50')
+    d.polygon([(22, 12), (16, 16), (22, 23)], fill='#f5cb50')
+    texture('item/subway_gate', icon)
+    model('item/subway_gate', {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'accesscontrol:item/subway_gate'}})
+    item('subway_gate')
+    for name in ['glass_sliding_tech_door', 'industrial_sliding_door', 'subway_gate']:
+        props = {'half': 'lower'} | ({'part': 'center'} if name == 'subway_gate' else {})
+        write_json(DATA / 'loot_table/blocks' / (name + '.json'), {'type': 'minecraft:block', 'pools': [
+            {'rolls': 1, 'entries': [{'type': 'minecraft:item', 'name': 'accesscontrol:' + name}], 'conditions': [
+                {'condition': 'minecraft:block_state_property', 'block': 'accesscontrol:' + name, 'properties': props},
+                {'condition': 'minecraft:survives_explosion'}]}]})
+    recipes = [
+        ('glass_sliding_tech_door', ['GQG', 'GPG', 'GQG'], {'G': 'minecraft:glass', 'Q': 'minecraft:quartz', 'P': 'minecraft:piston'}),
+        ('industrial_sliding_door', ['IGI', 'PDP', 'IGI'], {'I': 'minecraft:iron_ingot', 'G': 'minecraft:gold_ingot', 'P': 'minecraft:piston', 'D': 'accesscontrol:sliding_tech_door'}),
+        ('subway_gate', ['RGR', 'PIP', 'III'], {'R': 'accesscontrol:card_reader', 'G': 'minecraft:gold_ingot', 'P': 'minecraft:piston', 'I': 'minecraft:iron_ingot'})]
+    for name, pattern, key in recipes:
+        write_json(DATA / 'recipe' / (name + '.json'), {'type': 'minecraft:crafting_shaped', 'category': 'redstone',
+            'pattern': pattern, 'key': key, 'result': {'id': 'accesscontrol:' + name, 'count': 1}})
+    tag = ROOT / 'data/minecraft/tags/block/mineable/pickaxe.json'
+    data = json.loads(tag.read_text())
+    for name, _, _ in recipes:
+        if 'accesscontrol:' + name not in data['values']: data['values'].append('accesscontrol:' + name)
+    write_json(tag, data)
+    for lang, names in [('zh_cn', ['全玻璃科技移门', '工业气密科技移门', '地铁双翼闸机']),
+                        ('en_us', ['Full-glass Sliding Tech Door', 'Industrial Pneumatic Sliding Door', 'Subway Flap Barrier'])]:
+        path = ASSETS / f'lang/{lang}.json'; data = json.loads(path.read_text())
+        for (name, _, _), label in zip(recipes, names): data['block.accesscontrol.' + name] = label
+        write_json(path, data)
+
+
 if __name__ == '__main__':
-    make_cards(); make_readers(); make_doors(); make_data(); make_language(); make_sounds()
+    make_cards(); make_readers(); make_doors(); make_data(); make_language(); make_sounds(); make_expansion()
     print('Generated textures, models, blockstates, recipes, loot, translations and sounds.')

@@ -1,0 +1,56 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "textures": {
+    "bottom": "accesscontrol:block/gate_right_wing_bottom",
+    "top": "accesscontrol:block/gate_right_wing_top",
+    "panel": "accesscontrol:block/gate_right_wing_bottom",
+    "particle": "accesscontrol:block/gate_right_wing_bottom"
+  },
+  "elements": [
+    {
+      "from": [
+        8,
+        4,
+        7
+      ],
+      "to": [
+        16,
+        16,
+        9
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bottom",
+          "uv": [
+            0,
+            0,
+            16,
+            12
+          ]
+        },
+        "south": {
+          "texture": "#bottom",
+          "uv": [
+            0,
+            0,
+            16,
+            12
+          ]
+        },
+        "east": {
+          "texture": "#bottom"
+        },
+        "west": {
+          "texture": "#bottom"
+        },
+        "up": {
+          "texture": "#bottom"
+        },
+        "down": {
+          "texture": "#bottom"
+        }
+      }
+    }
+  ]
+}

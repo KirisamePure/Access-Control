@@ -22,5 +22,8 @@
   "item.accesscontrol.access_card_1": "L1 门禁卡",
   "item.accesscontrol.access_card_2": "L2 门禁卡",
   "item.accesscontrol.access_card_3": "L3 门禁卡",
-  "item.accesscontrol.access_card_4": "L4 门禁卡"
+  "item.accesscontrol.access_card_4": "L4 门禁卡",
+  "block.accesscontrol.glass_sliding_tech_door": "全玻璃科技移门",
+  "block.accesscontrol.industrial_sliding_door": "工业气密科技移门",
+  "block.accesscontrol.subway_gate": "地铁双翼闸机"
 }

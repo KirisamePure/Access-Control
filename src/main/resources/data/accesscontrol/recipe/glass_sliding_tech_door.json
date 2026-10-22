@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "GQG",
+    "GPG",
+    "GQG"
+  ],
+  "key": {
+    "G": "minecraft:glass",
+    "Q": "minecraft:quartz",
+    "P": "minecraft:piston"
+  },
+  "result": {
+    "id": "accesscontrol:glass_sliding_tech_door",
+    "count": 1
+  }
+}

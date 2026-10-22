@@ -1,0 +1,56 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "textures": {
+    "bottom": "accesscontrol:block/industrial_sliding_door_bottom",
+    "top": "accesscontrol:block/industrial_sliding_door_top",
+    "panel": "accesscontrol:block/industrial_sliding_door_bottom",
+    "particle": "accesscontrol:block/industrial_sliding_door_bottom"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        13
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bottom",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#bottom",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#bottom"
+        },
+        "west": {
+          "texture": "#bottom"
+        },
+        "up": {
+          "texture": "#bottom"
+        },
+        "down": {
+          "texture": "#bottom"
+        }
+      }
+    }
+  ]
+}

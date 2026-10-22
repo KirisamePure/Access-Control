@@ -50,11 +50,16 @@ public final class ReaderNetworking {
             return;
         }
         BlockState state = world.getBlockState(payload.pos());
-        if (!state.isOf(AccessControl.READER)) {
+        if (!state.isOf(AccessControl.READER) && !state.isOf(AccessControl.SUBWAY_GATE)) {
             player.sendMessage(Text.translatable("message.accesscontrol.config_rejected").formatted(Formatting.RED), true);
             return;
         }
-        world.setBlockState(payload.pos(), state.with(ReaderBlock.REQUIRED_LEVEL, payload.level()), Block.NOTIFY_ALL);
+        if (state.isOf(AccessControl.SUBWAY_GATE)) {
+            BlockPos center = SubwayGateBlock.center(state, payload.pos());
+            AccessControl.SUBWAY_GATE.configure(world, center, payload.level());
+        } else {
+            world.setBlockState(payload.pos(), state.with(ReaderBlock.REQUIRED_LEVEL, payload.level()), Block.NOTIFY_ALL);
+        }
         player.sendMessage(Text.translatable("message.accesscontrol.config_saved", payload.level()).formatted(Formatting.GREEN), true);
     }
 
@@ -65,7 +70,7 @@ public final class ReaderNetworking {
         }
         var world = player.getEntityWorld();
         BlockState state = world.getBlockState(pos);
-        if (state.isOf(AccessControl.READER)) {
+        if (state.isOf(AccessControl.READER) || state.isOf(AccessControl.SUBWAY_GATE)) {
             ServerPlayNetworking.send(player, new OpenConfig(pos, world.getRegistryKey().getValue(), state.get(ReaderBlock.REQUIRED_LEVEL)));
         }
     }

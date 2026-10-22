@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "IGI",
+    "PDP",
+    "IGI"
+  ],
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "G": "minecraft:gold_ingot",
+    "P": "minecraft:piston",
+    "D": "accesscontrol:sliding_tech_door"
+  },
+  "result": {
+    "id": "accesscontrol:industrial_sliding_door",
+    "count": 1
+  }
+}

@@ -1,6 +1,7 @@
 package dev.kirisame.accesscontrol;
 
 import dev.kirisame.accesscontrol.client.ReaderConfigScreen;
+import dev.kirisame.accesscontrol.client.SlidingDoorRenderer;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -15,7 +16,7 @@ public final class AccessControlClientTest implements FabricClientGameTest {
     @Override public void runTest(ClientGameTestContext context) {
         try (var game = context.worldBuilder().adjustSettings(creator -> creator.setGameMode(WorldCreator.Mode.CREATIVE)).create()) {
             var server = game.getServer();
-            server.runCommand("fill -8 90 -4 12 90 12 minecraft:smooth_stone");
+            server.runCommand("fill -8 90 -12 12 90 12 minecraft:smooth_stone");
             server.runCommand("time set noon");
             server.runCommand("weather clear");
             server.runCommand("tp @a 2.5 91 8.5 180 0");
@@ -84,6 +85,74 @@ public final class AccessControlClientTest implements FabricClientGameTest {
             context.getInput().pressKey(options -> options.useKey);
             context.waitFor(client -> client.world.getBlockState(reader).get(ReaderBlock.POWERED));
             context.takeScreenshot("accesscontrol_granted");
+
+            // Expanded scene: glass, industrial wall pocket, and the subway flap lane.
+            BlockPos pocket = new BlockPos(0, 91, -7);
+            BlockPos gate = new BlockPos(5, 91, -7);
+            server.runOnServer(s -> {
+                var world = s.getOverworld();
+                for (int i = 0; i < 2; i++) {
+                    BlockPos pos = i == 0 ? new BlockPos(-3, 91, -7) : pocket;
+                    BlockState state = (i == 0 ? AccessControl.GLASS_DOOR : AccessControl.INDUSTRIAL_DOOR)
+                            .getDefaultState().with(DoorBlock.FACING, Direction.SOUTH);
+                    world.setBlockState(pos, state.with(DoorBlock.HALF, DoubleBlockHalf.LOWER));
+                    world.setBlockState(pos.up(), state.with(DoorBlock.HALF, DoubleBlockHalf.UPPER));
+                }
+                world.setBlockState(pocket.east(), Blocks.SMOOTH_STONE.getDefaultState());
+                world.setBlockState(pocket.east().up(), Blocks.SMOOTH_STONE.getDefaultState());
+                var state = AccessControl.SUBWAY_GATE.getDefaultState().with(DoorBlock.FACING, Direction.SOUTH);
+                world.setBlockState(gate, state);
+                AccessControl.SUBWAY_GATE.onPlaced(world, gate, state, null, new net.minecraft.item.ItemStack(AccessControl.SUBWAY_GATE));
+            });
+            server.runCommand("fill -4 91 -9 -2 93 -9 minecraft:orange_concrete");
+            server.runCommand("tp @a 1.5 91 0.5 180 2");
+            context.waitTicks(20);
+            game.getClientWorld().waitForChunksRender();
+            context.runOnClient(client -> client.inGameHud.getChatHud().clear(false));
+            context.takeScreenshot("expansion_closed");
+            server.runCommand("setblock 0 91 -6 minecraft:redstone_block");
+            context.waitTicks(15);
+            context.runOnClient(client -> {
+                for (int y = 0; y < 2; y++) {
+                    var entity = client.world.getBlockEntity(pocket.up(y));
+                    var state = (SlidingDoorRenderer.State) client.getBlockEntityRenderDispatcher().getRenderState(entity, 1, null);
+                    if (!state.faces().isEmpty()) throw new AssertionError("Door still draws geometry inside a full wall");
+                }
+                client.inGameHud.getChatHud().clear(false);
+            });
+            context.takeScreenshot("door_hidden_inside_wall");
+            server.runCommand("setblock 1 91 -7 minecraft:stone_slab[type=bottom]");
+            context.waitTicks(5);
+            context.runOnClient(client -> {
+                var state = (SlidingDoorRenderer.State) client.getBlockEntityRenderDispatcher()
+                        .getRenderState(client.world.getBlockEntity(pocket), 1, null);
+                if (state.faces().isEmpty()) throw new AssertionError("Slab incorrectly hides the entire panel");
+                for (var face : state.faces()) for (var vertex : face.vertices())
+                    if (vertex.y() < .5f) throw new AssertionError("Door intersects the pocket slab");
+                client.inGameHud.getChatHud().clear(false);
+            });
+            context.takeScreenshot("door_partially_hidden_by_slab");
+            server.runCommand("tp @a 4.75 91 -3.5 180 12");
+            context.waitTicks(5);
+            context.getInput().holdKey(options -> options.sneakKey);
+            context.waitTick();
+            context.getInput().pressKey(options -> options.useKey);
+            context.getInput().releaseKey(options -> options.sneakKey);
+            context.waitForScreen(ReaderConfigScreen.class);
+            context.clickScreenButton("L3");
+            context.clickScreenButton("screen.accesscontrol.save");
+            context.waitFor(client -> client.world.getBlockState(gate).get(ReaderBlock.REQUIRED_LEVEL) == 3);
+            context.waitTicks(5);
+            context.getInput().pressKey(options -> options.useKey);
+            context.waitFor(client -> client.world.getBlockState(gate).get(DoorBlock.OPEN));
+            context.waitTicks(12);
+            context.runOnClient(client -> {
+                var state = (SlidingDoorRenderer.State) client.getBlockEntityRenderDispatcher()
+                        .getRenderState(client.world.getBlockEntity(gate), 1, null);
+                if (!state.faces().isEmpty()) throw new AssertionError("Retracted wings should be hidden by the cabinets");
+                client.inGameHud.getChatHud().clear(false);
+            });
+            context.takeScreenshot("subway_gate_card_open");
         }
     }
 }

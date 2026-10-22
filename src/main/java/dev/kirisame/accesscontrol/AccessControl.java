@@ -41,15 +41,25 @@ public final class AccessControl implements ModInitializer {
     public static final MetalDoorBlock IRON_WINDOW_DOOR = registerBlock("windowed_iron_door", new MetalDoorBlock(settings("windowed_iron_door")));
     public static final SlidingDoorBlock TECH_DOOR = registerBlock("sliding_tech_door", new SlidingDoorBlock(settings("sliding_tech_door")));
     public static final SlidingDoorBlock TECH_WINDOW_DOOR = registerBlock("windowed_sliding_tech_door", new SlidingDoorBlock(settings("windowed_sliding_tech_door")));
+    public static final SlidingDoorBlock GLASS_DOOR = registerBlock("glass_sliding_tech_door", new SlidingDoorBlock(settings("glass_sliding_tech_door")));
+    public static final SlidingDoorBlock INDUSTRIAL_DOOR = registerBlock("industrial_sliding_door", new SlidingDoorBlock(settings("industrial_sliding_door")));
+    public static final SubwayGateBlock SUBWAY_GATE = registerBlock("subway_gate", new SubwayGateBlock(settings("subway_gate")));
     // Render-only states: no item, recipe or world placement. A visible model lets the BER
     // submit the moving panel without recursively drawing an invisible door block.
     public static final DoorPanelBlock TECH_PANEL = registerBlock("tech_panel", new DoorPanelBlock(settings("tech_panel")));
     public static final DoorPanelBlock TECH_WINDOW_PANEL = registerBlock("tech_window_panel", new DoorPanelBlock(settings("tech_window_panel")));
+    public static final DoorPanelBlock GLASS_PANEL = registerBlock("glass_tech_panel", new DoorPanelBlock(settings("glass_tech_panel")));
+    public static final DoorPanelBlock INDUSTRIAL_PANEL = registerBlock("industrial_panel", new DoorPanelBlock(settings("industrial_panel")));
+    public static final DoorPanelBlock GATE_LEFT_POST = registerBlock("gate_left_post", new DoorPanelBlock(settings("gate_left_post")));
+    public static final DoorPanelBlock GATE_RIGHT_POST = registerBlock("gate_right_post", new DoorPanelBlock(settings("gate_right_post")));
+    public static final DoorPanelBlock GATE_LEFT_WING = registerBlock("gate_left_wing", new DoorPanelBlock(settings("gate_left_wing")));
+    public static final DoorPanelBlock GATE_RIGHT_WING = registerBlock("gate_right_wing", new DoorPanelBlock(settings("gate_right_wing")));
 
     public static final List<AccessCardItem> CARDS = List.of(card(1), card(2), card(3), card(4));
     public static final BlockEntityType<SlidingDoorBlockEntity> SLIDING_ENTITY = Registry.register(
             Registries.BLOCK_ENTITY_TYPE, id("sliding_door"),
-            FabricBlockEntityTypeBuilder.create(SlidingDoorBlockEntity::new, TECH_DOOR, TECH_WINDOW_DOOR).build());
+            FabricBlockEntityTypeBuilder.create(SlidingDoorBlockEntity::new, TECH_DOOR, TECH_WINDOW_DOOR,
+                    GLASS_DOOR, INDUSTRIAL_DOOR, SUBWAY_GATE).build());
     public static final BlockEntityType<ReaderBlockEntity> READER_ENTITY = Registry.register(
             Registries.BLOCK_ENTITY_TYPE, id("card_reader"),
             FabricBlockEntityTypeBuilder.create(ReaderBlockEntity::new, READER).build());
@@ -74,7 +84,8 @@ public final class AccessControl implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        List<Block> blocks = List.of(READER, IRON_DOOR, IRON_WINDOW_DOOR, TECH_DOOR, TECH_WINDOW_DOOR);
+        List<Block> blocks = List.of(READER, IRON_DOOR, IRON_WINDOW_DOOR, TECH_DOOR, TECH_WINDOW_DOOR,
+                GLASS_DOOR, INDUSTRIAL_DOOR, SUBWAY_GATE);
         for (Block block : blocks) {
             Identifier id = Registries.BLOCK.getId(block);
             var itemSettings = itemSettings(id.getPath()).useBlockPrefixedTranslationKey();
@@ -91,10 +102,12 @@ public final class AccessControl implements ModInitializer {
         ReaderNetworking.register();
         // The callback runs before vanilla's sneak bypass, including while holding a block.
         UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
+            var state = world.getBlockState(hit.getBlockPos());
             if (player.isSpectator() || !player.isSneaking()
-                    || !world.getBlockState(hit.getBlockPos()).isOf(READER)) return ActionResult.PASS;
+                    || !(state.isOf(READER) || state.isOf(SUBWAY_GATE))) return ActionResult.PASS;
             if (hand == Hand.MAIN_HAND && player instanceof ServerPlayerEntity serverPlayer) {
-                ReaderNetworking.open(serverPlayer, hit.getBlockPos());
+                ReaderNetworking.open(serverPlayer, state.isOf(SUBWAY_GATE)
+                        ? SubwayGateBlock.center(state, hit.getBlockPos()) : hit.getBlockPos());
             }
             return ActionResult.SUCCESS;
         });

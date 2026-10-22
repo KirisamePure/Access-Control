@@ -11,7 +11,9 @@ import net.minecraft.client.render.BlockRenderLayer;
 public final class AccessControlClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         BlockRenderLayerMap.putBlocks(BlockRenderLayer.CUTOUT,
-                AccessControl.IRON_WINDOW_DOOR, AccessControl.TECH_WINDOW_PANEL);
+                AccessControl.IRON_WINDOW_DOOR, AccessControl.TECH_WINDOW_PANEL,
+                AccessControl.GATE_LEFT_WING, AccessControl.GATE_RIGHT_WING);
+        BlockRenderLayerMap.putBlock(AccessControl.GLASS_PANEL, BlockRenderLayer.TRANSLUCENT);
         BlockEntityRendererFactories.register(AccessControl.SLIDING_ENTITY, SlidingDoorRenderer::new);
         ClientPlayNetworking.registerGlobalReceiver(ReaderNetworking.OpenConfig.ID, (payload, context) ->
                 context.client().setScreen(new ReaderConfigScreen(payload)));

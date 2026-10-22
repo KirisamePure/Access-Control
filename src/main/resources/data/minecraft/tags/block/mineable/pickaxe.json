@@ -5,6 +5,9 @@
     "accesscontrol:sealed_iron_door",
     "accesscontrol:windowed_iron_door",
     "accesscontrol:sliding_tech_door",
-    "accesscontrol:windowed_sliding_tech_door"
+    "accesscontrol:windowed_sliding_tech_door",
+    "accesscontrol:glass_sliding_tech_door",
+    "accesscontrol:industrial_sliding_door",
+    "accesscontrol:subway_gate"
   ]
 }

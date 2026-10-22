@@ -12,10 +12,10 @@ import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import net.minecraft.world.block.WireOrientation;
 
-public final class SlidingDoorBlock extends MetalDoorBlock implements BlockEntityProvider {
+public class SlidingDoorBlock extends MetalDoorBlock implements BlockEntityProvider {
     public static final MapCodec<SlidingDoorBlock> CODEC = createCodec(SlidingDoorBlock::new);
     public SlidingDoorBlock(Settings settings) { super(settings); }
-    @Override public MapCodec<SlidingDoorBlock> getCodec() { return CODEC; }
+    @Override public MapCodec<? extends SlidingDoorBlock> getCodec() { return CODEC; }
     @Override public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
         return new SlidingDoorBlockEntity(pos, state);
     }
