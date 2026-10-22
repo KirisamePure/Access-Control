@@ -1,0 +1,75 @@
+# 门禁系统 · Access Control
+
+适用于 **Minecraft Java 1.21.10 / Fabric / Java 21**。客户端和服务器均需安装本模组及 Fabric API。
+
+## 安装
+
+将 `access-control-0.1.0.jar`（不是 `-sources.jar`）与 **Fabric API 0.138.4+1.21.10** 放入 `mods` 目录，使用 Fabric Loader 0.17.3 或更新兼容版本启动。
+
+## 玩法
+
+- **L1–L4 门禁卡**：绿色、蓝色、紫色、金色，配有不同数字与条纹，便于区分。高级卡可以通过低级门禁。
+- **门禁读卡器**：放置在完整方块的侧面。手持门禁卡右键刷卡；默认要求 L1。
+- **验证成功**：绿灯、提示音、物品栏上方的行动栏提示，并输出强度 15、持续 20 游戏刻（正常速度下 1 秒）的红石信号。再次成功刷卡刷新持续时间。
+- **验证失败**：红灯、拒绝提示音和“权限不足”行动栏提示，不产生新的红石信号。之前已授权的脉冲仍按原计划结束。
+- **配置门禁**：OP 潜行右键读卡器，选择最低通行等级并保存。取消或 Esc 不修改配置。等级随世界保存。
+- **铁制安防门**：全封闭 / 观察窗两种，像铁门一样旋转开启。
+- **科技移门**：全封闭 / 观察窗两种，门板沿门侧滑动，使用 smoothstep 曲线在约 0.5 秒内开合，配有原创气动音效。根据门铰链位置决定左右滑动方向，重载区块时保持正确开关状态。
+- **四种门均只接受红石控制**，普通右键不能打开。两格高，放置、破坏及上下一致性沿用原版门规则。
+
+### 示例接线
+
+读卡器 → 它背后的完整方块 → 红石粉 / 中继器 → 安防门。
+
+读卡器可以强充能背后的方块，也向周围输出弱充能。读卡器需要实体墙面支撑，不能直接贴在薄门板上。移门打开后进入相邻一格，可用墙体作为门袋；门板不会推动或破坏旁边的方块。建议先建一个测试房间检查滑动方向，再布置墙体。
+
+### 获取物品
+
+创造模式“门禁系统”物品栏提供全部物品。门禁与门有工作台配方；门禁卡仅由管理员发放，避免普通玩家自行合成最高权限卡。
+
+```mcfunction
+/give @s accesscontrol:card_reader
+/give @s accesscontrol:access_card_1
+/give @s accesscontrol:access_card_2
+/give @s accesscontrol:access_card_3
+/give @s accesscontrol:access_card_4
+/give @s accesscontrol:sealed_iron_door
+/give @s accesscontrol:windowed_iron_door
+/give @s accesscontrol:sliding_tech_door
+/give @s accesscontrol:windowed_sliding_tech_door
+```
+
+门和读卡器是普通可破坏方块。本模组控制刷卡和红石交互，不提供领地保护、防拆墙或防绕线功能；公共服务器可搭配领地保护插件或模组。
+
+## 开发与验证
+
+在仓库根目录使用完整 **JDK 21**：
+
+```sh
+./gradlew build
+./gradlew runGameTest
+./gradlew runClientGameTest
+./gradlew runClient
+```
+
+Windows 使用 `gradlew.bat`。构建产物位于 `build/libs/`。`build` 包含 18 项 JUnit 检查；`runGameTest` 在真实 Minecraft 服务端中验证四级权限矩阵、连续刷卡定时、非 OP 配置拦截、配置变更和四种门的双格红石行为。`runClientGameTest` 需要图形环境，验证模型渲染、潜行右键配置、保存、刷卡反馈及网络配置校验，截图保存在 `build/run/clientGameTest/screenshots/`。GameTest 的测试模组不会打包进发行 JAR。
+
+首次 GameTest 会在专用测试目录生成并接受 Minecraft EULA；运行前请阅读 https://aka.ms/MinecraftEULA 。
+
+原始 PNG / OGG 和 JSON 资源均已随仓库提交，正常构建不需要额外资源工具。需要重新生成资源时，安装 Pillow 与 ffmpeg，再运行：
+
+```sh
+python tools/generate_assets.py
+```
+
+素材均为本项目程序绘制 / 合成，没有额外美术或音效下载依赖。支持简体中文与英文。
+
+### 手动验收
+
+1. 使用 L1 卡刷 L4 门禁，检查红灯、拒绝声、行动栏提示且门未打开；使用 L4 卡，检查绿灯、成功声、门开启后自动关闭。
+2. OP 潜行右键，分别设置 L1–L4；退出并重进世界，检查配置仍存在。非 OP 潜行右键不能打开配置。
+3. 在多人服务器中测试非 OP、距离超过 8 格或跨维度的配置请求被拒绝。
+4. 分别测试四个方向与两种铰链的门：上下半格通电都可开门，断电关闭；普通右键无效；破坏任意半格不重复掉落。
+5. 检查两种观察窗透明、四张卡外观不同；移门开合平滑、开合途中反向不发生位置跳跃，音效与字幕正常。
+
+自动测试与人工客户端验收覆盖不同内容；请在实际游玩环境中最终确认音量、手感及与其他模组的兼容性。

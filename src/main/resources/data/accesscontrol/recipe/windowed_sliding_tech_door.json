@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "G",
+    "D"
+  ],
+  "key": {
+    "G": "minecraft:glass_pane",
+    "D": "accesscontrol:sliding_tech_door"
+  },
+  "result": {
+    "id": "accesscontrol:windowed_sliding_tech_door",
+    "count": 1
+  }
+}

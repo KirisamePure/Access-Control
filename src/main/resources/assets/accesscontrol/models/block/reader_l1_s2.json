@@ -1,0 +1,50 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "textures": {
+    "body": "accesscontrol:block/reader_body",
+    "front": "accesscontrol:block/reader_l1_s2",
+    "particle": "accesscontrol:block/reader_body"
+  },
+  "elements": [
+    {
+      "from": [
+        4,
+        3,
+        13
+      ],
+      "to": [
+        12,
+        13,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#front",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "light_emission": 8
+        },
+        "south": {
+          "texture": "#body"
+        },
+        "east": {
+          "texture": "#body"
+        },
+        "west": {
+          "texture": "#body"
+        },
+        "up": {
+          "texture": "#body"
+        },
+        "down": {
+          "texture": "#body"
+        }
+      }
+    }
+  ]
+}

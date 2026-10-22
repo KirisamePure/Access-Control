@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "G",
+    "D"
+  ],
+  "key": {
+    "G": "minecraft:glass_pane",
+    "D": "accesscontrol:sealed_iron_door"
+  },
+  "result": {
+    "id": "accesscontrol:windowed_iron_door",
+    "count": 1
+  }
+}

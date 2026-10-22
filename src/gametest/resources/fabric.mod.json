@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "accesscontrol-test",
+  "version": "1.0.0",
+  "name": "Access Control Integration Tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": ["dev.kirisame.accesscontrol.AccessControlGameTests"],
+    "fabric-client-gametest": ["dev.kirisame.accesscontrol.AccessControlClientTest"]
+  },
+  "depends": {"accesscontrol": "*", "fabric-gametest-api-v1": "*"}
+}

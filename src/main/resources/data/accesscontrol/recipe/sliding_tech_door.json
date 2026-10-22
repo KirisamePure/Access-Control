@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "QCQ",
+    "PDP",
+    "QRQ"
+  ],
+  "key": {
+    "Q": "minecraft:quartz",
+    "C": "minecraft:copper_ingot",
+    "P": "minecraft:piston",
+    "D": "accesscontrol:sealed_iron_door",
+    "R": "minecraft:redstone"
+  },
+  "result": {
+    "id": "accesscontrol:sliding_tech_door",
+    "count": 1
+  }
+}

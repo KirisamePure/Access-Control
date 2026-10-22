@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "accesscontrol:card_reader",
+    "accesscontrol:sealed_iron_door",
+    "accesscontrol:windowed_iron_door",
+    "accesscontrol:sliding_tech_door",
+    "accesscontrol:windowed_sliding_tech_door"
+  ]
+}

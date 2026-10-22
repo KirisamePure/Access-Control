@@ -1,0 +1,26 @@
+{
+  "reader_granted": {
+    "subtitle": "subtitles.accesscontrol.reader_granted",
+    "sounds": [
+      "accesscontrol:reader_granted"
+    ]
+  },
+  "reader_denied": {
+    "subtitle": "subtitles.accesscontrol.reader_denied",
+    "sounds": [
+      "accesscontrol:reader_denied"
+    ]
+  },
+  "pneumatic_open": {
+    "subtitle": "subtitles.accesscontrol.pneumatic_open",
+    "sounds": [
+      "accesscontrol:pneumatic_open"
+    ]
+  },
+  "pneumatic_close": {
+    "subtitle": "subtitles.accesscontrol.pneumatic_close",
+    "sounds": [
+      "accesscontrol:pneumatic_close"
+    ]
+  }
+}

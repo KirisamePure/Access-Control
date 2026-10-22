@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "accesscontrol",
+  "version": "${version}",
+  "name": "Access Control / 门禁系统",
+  "description": "Four clearance levels, configurable card readers and redstone security doors.",
+  "authors": ["KirisamePure"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.kirisame.accesscontrol.AccessControl"],
+    "client": ["dev.kirisame.accesscontrol.client.AccessControlClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.17.3",
+    "minecraft": "1.21.10",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
