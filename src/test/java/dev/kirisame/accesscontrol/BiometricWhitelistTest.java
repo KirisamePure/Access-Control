@@ -24,4 +24,13 @@ class BiometricWhitelistTest {
     @Test void oversizedInputIsRejectedBeforeParsing() {
         assertThrows(IllegalArgumentException.class, () -> BiometricWhitelist.parse(" ".repeat(4097)));
     }
+    @Test void teamNamesAreExactAndBounded() {
+        assertEquals(Set.of("Staff", "staff"), BiometricWhitelist.parseTeams("Staff\nstaff\nStaff"));
+        assertTrue(BiometricWhitelist.parseTeams("").isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> BiometricWhitelist.parseTeams("two words"));
+        assertThrows(IllegalArgumentException.class, () -> BiometricWhitelist.parseTeams("a".repeat(65)));
+        String full = IntStream.range(0, 64).mapToObj(i -> "team_" + i).collect(Collectors.joining("\n"));
+        assertEquals(64, BiometricWhitelist.parseTeams(full).size());
+        assertThrows(IllegalArgumentException.class, () -> BiometricWhitelist.parseTeams(full + "\nextra"));
+    }
 }

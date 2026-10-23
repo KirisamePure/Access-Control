@@ -29,13 +29,20 @@
   "block.accesscontrol.biometric_reader": "生物识别门禁",
   "message.accesscontrol.empty_hands": "请腾空双手，再右键进行生物识别",
   "message.accesscontrol.bio_granted": "身份识别通过 · 欢迎通行",
-  "message.accesscontrol.bio_denied": "身份识别失败 · 你不在此门禁的白名单中",
-  "message.accesscontrol.whitelist_saved": "生物识别白名单已保存，共 %s 人",
+  "message.accesscontrol.bio_denied": "身份识别失败 · 你和你的队伍不在此门禁白名单中",
+  "message.accesscontrol.whitelist_saved": "生物识别白名单已保存：%s 名玩家，%s 个队伍",
   "screen.accesscontrol.biometric_title": "生物识别 · 玩家白名单",
   "screen.accesscontrol.whitelist_hint": "点击玩家添加或移除；[+] 表示已授权",
   "screen.accesscontrol.whitelist_count": "白名单：%s / 64 人",
   "screen.accesscontrol.player_input": "在线玩家名或完整 UUID",
   "screen.accesscontrol.add": "添加",
   "screen.accesscontrol.invalid_player": "请选择在线玩家，或输入完整 UUID",
-  "screen.accesscontrol.whitelist_full": "白名单最多允许 64 人"
+  "screen.accesscontrol.whitelist_full": "白名单最多允许 64 人",
+  "item.accesscontrol.silicone_mask": "硅胶人皮面具",
+  "screen.accesscontrol.players_tab": "玩家白名单",
+  "screen.accesscontrol.teams_tab": "队伍白名单",
+  "screen.accesscontrol.teams_count": "已授权队伍：%s / 64",
+  "screen.accesscontrol.team_input": "原版队伍内部名称",
+  "screen.accesscontrol.invalid_team": "请先使用 /team 创建队伍，再选择或输入内部名称",
+  "screen.accesscontrol.teams_full": "最多允许 64 个队伍"
 }

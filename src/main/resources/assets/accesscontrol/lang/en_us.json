@@ -29,13 +29,20 @@
   "block.accesscontrol.biometric_reader": "Biometric Reader",
   "message.accesscontrol.empty_hands": "Empty both hands to use biometric identification",
   "message.accesscontrol.bio_granted": "Identity verified · Access granted",
-  "message.accesscontrol.bio_denied": "Access denied · Your identity is not whitelisted",
-  "message.accesscontrol.whitelist_saved": "Biometric whitelist saved: %s player(s)",
+  "message.accesscontrol.bio_denied": "Access denied · Neither you nor your team is whitelisted",
+  "message.accesscontrol.whitelist_saved": "Biometric whitelist saved: %s player(s), %s team(s)",
   "screen.accesscontrol.biometric_title": "Biometric Reader Whitelist",
   "screen.accesscontrol.whitelist_hint": "Click a player to toggle; [+] means allowed",
   "screen.accesscontrol.whitelist_count": "Allowed: %s / 64",
   "screen.accesscontrol.player_input": "Online name or full UUID",
   "screen.accesscontrol.add": "Add",
   "screen.accesscontrol.invalid_player": "Select an online player or enter a full UUID",
-  "screen.accesscontrol.whitelist_full": "Maximum 64 allowed players"
+  "screen.accesscontrol.whitelist_full": "Maximum 64 allowed players",
+  "item.accesscontrol.silicone_mask": "Silicone Skin Mask",
+  "screen.accesscontrol.players_tab": "Players",
+  "screen.accesscontrol.teams_tab": "Teams",
+  "screen.accesscontrol.teams_count": "Allowed teams: %s / 64",
+  "screen.accesscontrol.team_input": "Vanilla team internal name",
+  "screen.accesscontrol.invalid_team": "Create a vanilla team first; use its internal name",
+  "screen.accesscontrol.teams_full": "Maximum 64 allowed teams"
 }

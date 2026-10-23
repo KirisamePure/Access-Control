@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "LSL",
+    "WPW",
+    " L "
+  ],
+  "key": {
+    "L": "minecraft:leather",
+    "S": "minecraft:slime_ball",
+    "W": "minecraft:white_dye",
+    "P": "minecraft:paper"
+  },
+  "result": {
+    "id": "accesscontrol:silicone_mask",
+    "count": 1
+  }
+}

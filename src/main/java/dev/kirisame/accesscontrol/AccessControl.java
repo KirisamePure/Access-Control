@@ -13,6 +13,10 @@ import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.TallBlockItem;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.EquippableComponent;
+import net.minecraft.item.equipment.EquipmentAssetKeys;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -60,6 +64,11 @@ public final class AccessControl implements ModInitializer {
     public static final DoorPanelBlock GATE_RIGHT_WING = registerBlock("gate_right_wing", new DoorPanelBlock(settings("gate_right_wing")));
 
     public static final List<AccessCardItem> CARDS = List.of(card(1), card(2), card(3), card(4));
+    public static final Item SILICONE_MASK = Registry.register(Registries.ITEM, id("silicone_mask"), new Item(
+            itemSettings("silicone_mask").maxCount(1).component(DataComponentTypes.EQUIPPABLE,
+                    EquippableComponent.builder(EquipmentSlot.HEAD)
+                            .model(RegistryKey.of(EquipmentAssetKeys.REGISTRY_KEY, id("silicone_mask")))
+                            .damageOnHurt(false).build())));
     public static final BlockEntityType<SlidingDoorBlockEntity> SLIDING_ENTITY = Registry.register(
             Registries.BLOCK_ENTITY_TYPE, id("sliding_door"),
             FabricBlockEntityTypeBuilder.create(SlidingDoorBlockEntity::new, TECH_DOOR, TECH_WINDOW_DOOR,
@@ -104,6 +113,7 @@ public final class AccessControl implements ModInitializer {
                 .icon(() -> new ItemStack(CARDS.get(3)))
                 .entries((context, entries) -> {
                     CARDS.forEach(entries::add);
+                    entries.add(SILICONE_MASK);
                     blocks.forEach(entries::add);
                 }).build());
         ReaderNetworking.register();

@@ -254,6 +254,86 @@ public final class AccessControlClientTest implements FabricClientGameTest {
             context.runOnClient(client -> {
                 if (client.currentScreen != null) throw new AssertionError("Survival OP opened configuration");
             });
+
+            server.runCommand("team add bio_staff");
+            server.runCommand("gamemode creative @a");
+            context.waitTicks(5);
+            context.getInput().holdKey(options -> options.sneakKey);
+            context.waitTick();
+            context.getInput().pressKey(options -> options.useKey);
+            context.getInput().releaseKey(options -> options.sneakKey);
+            context.waitForScreen(BiometricConfigScreen.class);
+            context.clickScreenButton("screen.accesscontrol.teams_tab");
+            context.clickScreenButton("[ ] bio_staff");
+            context.takeScreenshot("biometric_team_whitelist");
+            context.clickScreenButton("screen.accesscontrol.players_tab");
+            context.clickScreenButton("[+] " + name);
+            context.clickScreenButton("screen.accesscontrol.save");
+            context.waitTicks(5);
+            server.runOnServer(s -> {
+                var entity = (BiometricReaderBlockEntity) s.getOverworld().getBlockEntity(biometric);
+                var player = s.getPlayerManager().getPlayerList().getFirst();
+                if (!entity.teams().contains("bio_staff") || entity.allows(player.getUuid()))
+                    throw new AssertionError("Team tab did not save independently of player whitelist");
+            });
+            server.runCommand("team join bio_staff @a");
+            server.runCommand("gamemode survival @a");
+            context.waitTicks(5);
+            context.getInput().pressKey(options -> options.useKey);
+            context.waitFor(client -> client.world.getBlockState(biometric).get(ReaderBlock.POWERED));
+            context.takeScreenshot("biometric_team_granted");
+            context.waitTicks(25);
+            server.runCommand("team leave @a");
+            context.waitTicks(3);
+            context.getInput().pressKey(options -> options.useKey);
+            context.waitFor(client -> client.world.getBlockState(biometric).get(ReaderBlock.STATUS) == 2);
+            context.runOnClient(client -> {
+                if (client.world.getBlockState(biometric).get(ReaderBlock.POWERED))
+                    throw new AssertionError("Player retained team authorization after leaving");
+            });
+
+            server.runOnServer(s -> {
+                var player = s.getPlayerManager().getPlayerList().getFirst();
+                var mask = new net.minecraft.item.ItemStack(AccessControl.SILICONE_MASK);
+                mask.set(net.minecraft.component.DataComponentTypes.CUSTOM_NAME, net.minecraft.text.Text.literal("Renamed silicone mask"));
+                mask.set(net.minecraft.component.DataComponentTypes.LORE, new net.minecraft.component.type.LoreComponent(
+                        java.util.List.of(net.minecraft.text.Text.literal("User-added tooltip"))));
+                var custom = new net.minecraft.nbt.NbtCompound(); custom.putString("custom_tag", "ignored by identity check");
+                mask.set(net.minecraft.component.DataComponentTypes.CUSTOM_DATA, net.minecraft.component.type.NbtComponent.of(custom));
+                player.setStackInHand(net.minecraft.util.Hand.MAIN_HAND, mask);
+            });
+            // Look into empty sky so normal right-click uses the equippable item.
+            server.runCommand("tp @a 10.5 91 4.5 90 -45");
+            context.waitFor(client -> client.player.getMainHandStack().isOf(AccessControl.SILICONE_MASK));
+            context.waitTicks(5);
+            context.getInput().pressKey(options -> options.useKey);
+            context.waitFor(client -> client.player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD).isOf(AccessControl.SILICONE_MASK));
+            context.getInput().pressKey(options -> options.inventoryKey);
+            context.waitTicks(3);
+            context.takeScreenshot("silicone_mask_equipped");
+            context.setScreen(() -> null);
+            server.runCommand("tp @a 10.5 91 4.5 180 0");
+            context.waitTicks(5);
+            context.getInput().pressKey(options -> options.useKey);
+            context.waitFor(client -> client.world.getBlockState(biometric).get(ReaderBlock.POWERED));
+            server.runOnServer(s -> {
+                var player = s.getPlayerManager().getPlayerList().getFirst();
+                var readerEntity = (BiometricReaderBlockEntity) s.getOverworld().getBlockEntity(biometric);
+                if (readerEntity.allows(player) || player.getScoreboardTeam() != null)
+                    throw new AssertionError("Mask test accidentally depends on whitelist/team membership");
+                if (player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD).get(net.minecraft.component.DataComponentTypes.LORE) == null)
+                    throw new AssertionError("Modified mask lost its custom tooltip while equipping");
+            });
+            context.takeScreenshot("biometric_modified_mask_granted");
+            server.runOnServer(s -> s.getPlayerManager().getPlayerList().getFirst()
+                    .equipStack(net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.item.ItemStack.EMPTY));
+            context.waitTicks(25);
+            context.getInput().pressKey(options -> options.useKey);
+            context.waitFor(client -> client.world.getBlockState(biometric).get(ReaderBlock.STATUS) == 2);
+            context.runOnClient(client -> {
+                if (client.world.getBlockState(biometric).get(ReaderBlock.POWERED))
+                    throw new AssertionError("Mask bypass remained after removing head equipment");
+            });
         }
     }
 }

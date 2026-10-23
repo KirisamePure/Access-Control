@@ -490,6 +490,48 @@ def make_biometrics():
         path = ASSETS / f'lang/{lang}.json'; data = json.loads(path.read_text()); data.update(additions); write_json(path, data)
 
 
+def make_teams_and_mask():
+    im = Image.new('RGBA', (32, 32)); d = ImageDraw.Draw(im)
+    d.line((4, 10, 2, 17, 6, 25), fill='#5c4c49', width=2)
+    d.line((27, 10, 29, 17, 25, 25), fill='#5c4c49', width=2)
+    d.polygon([(8, 3), (23, 3), (26, 9), (25, 24), (20, 29), (11, 29), (6, 24), (5, 9)], fill='#dfb49d', outline='#a97865')
+    d.rectangle((8, 11, 12, 14), fill=(0, 0, 0, 0)); d.rectangle((19, 11, 23, 14), fill=(0, 0, 0, 0))
+    d.line((7, 9, 12, 9), fill='#805b50'); d.line((19, 9, 24, 9), fill='#805b50')
+    d.line((15, 13, 14, 19, 17, 19), fill='#bb8c75')
+    d.line((12, 24, 20, 24), fill='#99685d'); d.line((11, 5, 20, 5), fill='#f2d2bd')
+    texture('item/silicone_mask', im)
+    model('item/silicone_mask', {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'accesscontrol:item/silicone_mask'}})
+    item('silicone_mask')
+    # Vanilla humanoid equipment UVs: only the face and narrow retaining straps.
+    armor = Image.new('RGBA', (64, 32)); d = ImageDraw.Draw(armor)
+    d.rectangle((8, 8, 15, 15), fill='#dfb49d')
+    d.line((9, 8, 14, 8), fill='#eed0bb')
+    for x in (9, 13): d.rectangle((x, 10, x + 1, 11), fill=(0, 0, 0, 0))
+    d.point((12, 12), fill='#b88873'); d.line((10, 14, 13, 14), fill='#986a60')
+    for x0,x1 in [(0,7),(16,23),(24,31)]: d.line((x0,12,x1,12), fill='#5b4944')
+    texture('entity/equipment/humanoid/silicone_mask', armor)
+    write_json(ASSETS / 'equipment/silicone_mask.json', {'layers': {'humanoid': [{'texture': 'accesscontrol:silicone_mask'}]}})
+    write_json(DATA / 'recipe/silicone_mask.json', {'type': 'minecraft:crafting_shaped', 'category': 'equipment',
+        'pattern': ['LSL', 'WPW', ' L '], 'key': {'L': 'minecraft:leather', 'S': 'minecraft:slime_ball',
+            'W': 'minecraft:white_dye', 'P': 'minecraft:paper'}, 'result': {'id': 'accesscontrol:silicone_mask', 'count': 1}})
+    zh = {
+        'item.accesscontrol.silicone_mask': '硅胶人皮面具',
+        'message.accesscontrol.whitelist_saved': '生物识别白名单已保存：%s 名玩家，%s 个队伍',
+        'message.accesscontrol.bio_denied': '身份识别失败 · 你和你的队伍不在此门禁白名单中',
+        'screen.accesscontrol.players_tab': '玩家白名单',
+        'screen.accesscontrol.teams_tab': '队伍白名单',
+        'screen.accesscontrol.teams_count': '已授权队伍：%s / 64',
+        'screen.accesscontrol.team_input': '原版队伍内部名称',
+        'screen.accesscontrol.invalid_team': '请先使用 /team 创建队伍，再选择或输入内部名称',
+        'screen.accesscontrol.teams_full': '最多允许 64 个队伍',
+    }
+    en = dict(zip(zh, ['Silicone Skin Mask', 'Biometric whitelist saved: %s player(s), %s team(s)',
+        'Access denied · Neither you nor your team is whitelisted', 'Players', 'Teams', 'Allowed teams: %s / 64',
+        'Vanilla team internal name', 'Create a vanilla team first; use its internal name', 'Maximum 64 allowed teams']))
+    for lang, additions in [('zh_cn',zh),('en_us',en)]:
+        path=ASSETS/f'lang/{lang}.json'; data=json.loads(path.read_text()); data.update(additions); write_json(path,data)
+
+
 if __name__ == '__main__':
-    make_cards(); make_readers(); make_doors(); make_data(); make_language(); make_sounds(); make_expansion(); make_biometrics()
+    make_cards(); make_readers(); make_doors(); make_data(); make_language(); make_sounds(); make_expansion(); make_biometrics(); make_teams_and_mask()
     print('Generated textures, models, blockstates, recipes, loot, translations and sounds.')

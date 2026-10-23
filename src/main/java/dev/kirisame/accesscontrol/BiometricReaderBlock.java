@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.*;
@@ -29,7 +30,8 @@ public final class BiometricReaderBlock extends ReaderBlock {
             return ActionResult.SUCCESS;
         }
         if (!(world.getBlockEntity(pos) instanceof BiometricReaderBlockEntity reader)) return ActionResult.FAIL;
-        boolean allowed = reader.allows(player.getUuid());
+        // Compare the registry item only. Names, lore and all other stack data are irrelevant.
+        boolean allowed = reader.allows(player) || player.getEquippedStack(EquipmentSlot.HEAD).isOf(AccessControl.SILICONE_MASK);
         return feedback(allowed, state, world, pos, player,
                 Text.translatable(allowed ? "message.accesscontrol.bio_granted" : "message.accesscontrol.bio_denied"));
     }

@@ -5,6 +5,12 @@ import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.block.*;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LoreComponent;
+import net.minecraft.component.type.NbtComponent;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.storage.NbtReadView;
@@ -130,15 +136,18 @@ public final class BiometricGameTests {
         var original = reader(context, pos);
         UUID id = UUID.randomUUID();
         original.setPlayers(Map.of(id, "OldName"));
+        original.setTeams(Set.of("bio_staff"));
         var copy = new BiometricReaderBlockEntity(pos, context.getWorld().getBlockState(pos));
         copy.read(NbtReadView.create(ErrorReporter.EMPTY, context.getWorld().getRegistryManager(),
                 original.createNbt(context.getWorld().getRegistryManager())));
         check(context, copy.allows(id), "Whitelist identity lost during save/load");
+        check(context, copy.teams().equals(Set.of("bio_staff")), "Team whitelist lost during save/load");
         check(context, !copy.allows(UUID.randomUUID()), "Display name or another identity granted access");
         original.setPlayers(Map.of());
         copy.read(NbtReadView.create(ErrorReporter.EMPTY, context.getWorld().getRegistryManager(),
                 original.createNbt(context.getWorld().getRegistryManager())));
         check(context, !copy.allows(id), "Revoked entry reappeared after reload");
+        check(context, copy.teams().contains("bio_staff"), "Changing players cleared the independent team list");
         context.complete();
     }
     @GameTest public void invalidWhitelistSaveIsAtomic(TestContext context) {
@@ -158,6 +167,92 @@ public final class BiometricGameTests {
             BiometricNetworking.configure(player, new BiometricNetworking.SetWhitelist(pos, world.getRegistryKey().getValue(), ""));
             check(context, reader(context, pos).allows(id), "Distant actor changed whitelist");
         } finally { world.getServer().getPlayerManager().removeFromOperators(profile); }
+        context.complete();
+    }
+    @GameTest public void vanillaTeamMembershipIsEvaluatedLive(TestContext context) {
+        BlockPos pos = biometric(context);
+        var player = context.createMockPlayer(GameMode.SURVIVAL);
+        var scoreboard = context.getWorld().getScoreboard();
+        String name = "bio_" + UUID.randomUUID().toString().substring(0, 8);
+        var team = scoreboard.addTeam(name);
+        team.setDisplayName(Text.literal("Different display label"));
+        try {
+            reader(context, pos).setTeams(Set.of(name));
+            check(context, !reader(context, pos).allows(player), "No-team player was allowed");
+            scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), team);
+            check(context, reader(context, pos).allows(player), "Whitelisted native team member denied");
+            scan(context, pos, player);
+            check(context, context.getWorld().getBlockState(pos).get(ReaderBlock.POWERED), "Team authorization produced no redstone");
+            scoreboard.removeScoreHolderFromTeam(player.getNameForScoreboard(), team);
+            check(context, !reader(context, pos).allows(player), "Leaving team did not revoke authorization");
+            scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), team);
+            reader(context, pos).setTeams(Set.of("Different_display_label"));
+            check(context, !reader(context, pos).allows(player), "Display label was used instead of internal team name");
+            reader(context, pos).setPlayers(Map.of(player.getUuid(), "Explicit player"));
+            check(context, reader(context, pos).allows(player), "Team denial overrode explicit player authorization");
+            reader(context, pos).setPlayers(Map.of());
+            reader(context, pos).setTeams(Set.of(name));
+        } finally { scoreboard.removeTeam(team); }
+        check(context, !reader(context, pos).allows(player), "Deleted team still authorizes player");
+        context.complete();
+    }
+    @GameTest public void maskIgnoresNameLoreAndCustomNbtButRequiresHeadSlot(TestContext context) {
+        BlockPos pos = biometric(context);
+        var player = context.createMockPlayer(GameMode.SURVIVAL);
+        var mask = new ItemStack(AccessControl.SILICONE_MASK);
+        mask.set(DataComponentTypes.CUSTOM_NAME, Text.literal("My custom face"));
+        mask.set(DataComponentTypes.LORE, new LoreComponent(List.of(Text.literal("Custom tooltip"))));
+        var nbt = new NbtCompound(); nbt.putString("custom_server_tag", "anything");
+        mask.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+        // Even altered component metadata must not be used as an authorization fingerprint.
+        mask.remove(DataComponentTypes.EQUIPPABLE);
+        player.equipStack(EquipmentSlot.CHEST, mask);
+        scan(context, pos, player);
+        check(context, !context.getWorld().getBlockState(pos).get(ReaderBlock.POWERED), "Mask in wrong slot grants access");
+        player.equipStack(EquipmentSlot.CHEST, ItemStack.EMPTY);
+        var imitation = new ItemStack(Items.LEATHER_HELMET);
+        imitation.set(DataComponentTypes.CUSTOM_NAME, Text.literal("硅胶人皮面具"));
+        imitation.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+        player.equipStack(EquipmentSlot.HEAD, imitation);
+        scan(context, pos, player);
+        check(context, !context.getWorld().getBlockState(pos).get(ReaderBlock.POWERED), "Renamed ordinary helmet grants access");
+        player.equipStack(EquipmentSlot.HEAD, mask);
+        scan(context, pos, player);
+        check(context, context.getWorld().getBlockState(pos).get(ReaderBlock.POWERED), "Modified real mask was rejected");
+        check(context, context.getWorld().getBlockState(pos).get(ReaderBlock.STATUS) == 1, "Mask bypass lacks success feedback");
+        context.complete();
+    }
+    @GameTest public void maskCanEquipThroughNormalItemUse(TestContext context) {
+        var player = context.createMockPlayer(GameMode.SURVIVAL);
+        var mask = new ItemStack(AccessControl.SILICONE_MASK);
+        check(context, mask.get(DataComponentTypes.EQUIPPABLE).slot() == EquipmentSlot.HEAD, "Mask is not a helmet-slot wearable");
+        player.setStackInHand(Hand.MAIN_HAND, mask);
+        AccessControl.SILICONE_MASK.use(context.getWorld(), player, Hand.MAIN_HAND);
+        check(context, player.getEquippedStack(EquipmentSlot.HEAD).isOf(AccessControl.SILICONE_MASK), "Right click failed to equip mask");
+        context.complete();
+    }
+    @GameTest public void unknownTeamCannotPartiallyChangeWhitelist(TestContext context) {
+        BlockPos pos = biometric(context);
+        var world = context.getWorld();
+        var player = context.createMockCreativeServerPlayerInWorld();
+        player.changeGameMode(GameMode.CREATIVE);
+        player.setPosition(pos.toCenterPos());
+        var profile = new PlayerConfigEntry(player.getGameProfile());
+        world.getServer().getPlayerManager().addToOperators(profile, Optional.of(1), Optional.of(false));
+        String name = "bio_" + UUID.randomUUID().toString().substring(0, 8);
+        var team = world.getScoreboard().addTeam(name);
+        try {
+            BiometricNetworking.configure(player, new BiometricNetworking.SetWhitelist(pos, world.getRegistryKey().getValue(), player.getUuidAsString(), name));
+            check(context, reader(context, pos).teams().contains(name), "Real team save rejected");
+            BiometricNetworking.configure(player, new BiometricNetworking.SetWhitelist(pos, world.getRegistryKey().getValue(), "", "nonexistent_" + name));
+            check(context, reader(context, pos).allows(player.getUuid()) && reader(context, pos).teams().contains(name), "Unknown team partially changed lists");
+            player.changeGameMode(GameMode.SURVIVAL);
+            BiometricNetworking.configure(player, new BiometricNetworking.SetWhitelist(pos, world.getRegistryKey().getValue(), "", ""));
+            check(context, reader(context, pos).teams().contains(name), "Survival OP changed teams");
+        } finally {
+            world.getServer().getPlayerManager().removeFromOperators(profile);
+            world.getScoreboard().removeTeam(team);
+        }
         context.complete();
     }
 }

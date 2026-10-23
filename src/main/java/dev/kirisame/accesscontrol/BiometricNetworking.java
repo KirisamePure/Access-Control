@@ -13,18 +13,22 @@ import net.minecraft.util.math.BlockPos;
 
 public final class BiometricNetworking {
     private BiometricNetworking() { }
-    public record OpenConfig(BlockPos pos, Identifier dimension, String whitelist, String online) implements CustomPayload {
+    public record OpenConfig(BlockPos pos, Identifier dimension, String whitelist, String online, String teams, String availableTeams) implements CustomPayload {
         public static final Id<OpenConfig> ID = new Id<>(AccessControl.id("open_biometric"));
         public static final PacketCodec<RegistryByteBuf, OpenConfig> CODEC = PacketCodec.tuple(
                 BlockPos.PACKET_CODEC, OpenConfig::pos, Identifier.PACKET_CODEC, OpenConfig::dimension,
-                PacketCodecs.string(8192), OpenConfig::whitelist, PacketCodecs.string(16384), OpenConfig::online, OpenConfig::new);
+                PacketCodecs.string(8192), OpenConfig::whitelist, PacketCodecs.string(16384), OpenConfig::online,
+                PacketCodecs.string(BiometricWhitelist.MAX_TEAM_INPUT), OpenConfig::teams,
+                PacketCodecs.string(16384), OpenConfig::availableTeams, OpenConfig::new);
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
-    public record SetWhitelist(BlockPos pos, Identifier dimension, String members) implements CustomPayload {
+    public record SetWhitelist(BlockPos pos, Identifier dimension, String members, String teams) implements CustomPayload {
+        public SetWhitelist(BlockPos pos, Identifier dimension, String members) { this(pos, dimension, members, ""); }
         public static final Id<SetWhitelist> ID = new Id<>(AccessControl.id("set_biometric_whitelist"));
         public static final PacketCodec<RegistryByteBuf, SetWhitelist> CODEC = PacketCodec.tuple(
                 BlockPos.PACKET_CODEC, SetWhitelist::pos, Identifier.PACKET_CODEC, SetWhitelist::dimension,
-                PacketCodecs.string(BiometricWhitelist.MAX_INPUT), SetWhitelist::members, SetWhitelist::new);
+                PacketCodecs.string(BiometricWhitelist.MAX_INPUT), SetWhitelist::members,
+                PacketCodecs.string(BiometricWhitelist.MAX_TEAM_INPUT), SetWhitelist::teams, SetWhitelist::new);
         @Override public Id<? extends CustomPayload> getId() { return ID; }
     }
     public static void register() {
@@ -45,7 +49,9 @@ public final class BiometricNetworking {
         world.getServer().getPlayerManager().getPlayerList().stream()
                 .sorted(Comparator.comparing(p -> p.getGameProfile().name(), String.CASE_INSENSITIVE_ORDER))
                 .limit(128).forEach(p -> online.put(p.getUuid(), p.getGameProfile().name()));
-        ServerPlayNetworking.send(player, new OpenConfig(pos, world.getRegistryKey().getValue(), encodeProfiles(reader.players()), encodeProfiles(online)));
+        String available = world.getScoreboard().getTeamNames().stream().sorted().limit(128).collect(Collectors.joining("\n"));
+        ServerPlayNetworking.send(player, new OpenConfig(pos, world.getRegistryKey().getValue(), encodeProfiles(reader.players()),
+                encodeProfiles(online), String.join("\n", reader.teams()), available));
     }
     static void configure(ServerPlayerEntity player, SetWhitelist payload) {
         if (!accessible(player, payload.pos(), payload.dimension())) { reject(player); return; }
@@ -53,7 +59,16 @@ public final class BiometricNetworking {
         if (!(world.getBlockEntity(payload.pos()) instanceof BiometricReaderBlockEntity reader)
                 || !world.getBlockState(payload.pos()).isOf(AccessControl.BIOMETRIC_READER)) { reject(player); return; }
         final Set<UUID> ids;
-        try { ids = BiometricWhitelist.parse(payload.members()); }
+        final Set<String> teams;
+        try {
+            ids = BiometricWhitelist.parse(payload.members());
+            teams = BiometricWhitelist.parseTeams(payload.teams());
+            // Existing removed-team entries may be retained or removed; adding a new
+            // entry requires a real vanilla scoreboard team, never a display name.
+            if (teams.stream().anyMatch(name -> world.getScoreboard().getTeam(name) == null && !reader.teams().contains(name))) {
+                reject(player); return;
+            }
+        }
         catch (IllegalArgumentException exception) { reject(player); return; }
         Map<UUID, String> entries = new LinkedHashMap<>();
         for (UUID id : ids) {
@@ -61,7 +76,8 @@ public final class BiometricNetworking {
             entries.put(id, online != null ? online.getGameProfile().name() : reader.players().getOrDefault(id, id.toString()));
         }
         reader.setPlayers(entries);
-        player.sendMessage(Text.translatable("message.accesscontrol.whitelist_saved", entries.size()).formatted(Formatting.GREEN), true);
+        reader.setTeams(teams);
+        player.sendMessage(Text.translatable("message.accesscontrol.whitelist_saved", entries.size(), teams.size()).formatted(Formatting.GREEN), true);
     }
     private static void reject(ServerPlayerEntity player) {
         player.sendMessage(Text.translatable("message.accesscontrol.config_rejected").formatted(Formatting.RED), true);
