@@ -5,8 +5,16 @@
   "name": "Access Control Integration Tests",
   "environment": "*",
   "entrypoints": {
-    "fabric-gametest": ["dev.kirisame.accesscontrol.AccessControlGameTests"],
-    "fabric-client-gametest": ["dev.kirisame.accesscontrol.AccessControlClientTest"]
+    "fabric-gametest": [
+      "dev.kirisame.accesscontrol.AccessControlGameTests",
+      "dev.kirisame.accesscontrol.BiometricGameTests"
+    ],
+    "fabric-client-gametest": [
+      "dev.kirisame.accesscontrol.AccessControlClientTest"
+    ]
   },
-  "depends": {"accesscontrol": "*", "fabric-gametest-api-v1": "*"}
+  "depends": {
+    "accesscontrol": "*",
+    "fabric-gametest-api-v1": "*"
+  }
 }

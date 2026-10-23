@@ -20,7 +20,7 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.*;
 import net.minecraft.world.tick.ScheduledTickView;
 
-public final class ReaderBlock extends HorizontalFacingBlock implements BlockEntityProvider {
+public class ReaderBlock extends HorizontalFacingBlock implements BlockEntityProvider {
     public static final MapCodec<ReaderBlock> CODEC = createCodec(ReaderBlock::new);
     public static final IntProperty REQUIRED_LEVEL = IntProperty.of("required_level", 1, 4);
     public static final IntProperty STATUS = IntProperty.of("status", 0, 2);
@@ -31,7 +31,7 @@ public final class ReaderBlock extends HorizontalFacingBlock implements BlockEnt
         setDefaultState(stateManager.getDefaultState().with(FACING, Direction.NORTH)
                 .with(REQUIRED_LEVEL, 1).with(STATUS, 0).with(POWERED, false));
     }
-    @Override public MapCodec<ReaderBlock> getCodec() { return CODEC; }
+    @Override public MapCodec<? extends ReaderBlock> getCodec() { return CODEC; }
     @Override public BlockEntity createBlockEntity(BlockPos pos, BlockState state) { return new ReaderBlockEntity(pos, state); }
     @Override protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
         builder.add(FACING, REQUIRED_LEVEL, STATUS, POWERED);
@@ -81,6 +81,10 @@ public final class ReaderBlock extends HorizontalFacingBlock implements BlockEnt
             return ActionResult.SUCCESS;
         }
         boolean allowed = AccessRules.grants(card.level(), state.get(REQUIRED_LEVEL));
+        return feedback(allowed, state, world, pos, player,
+                Text.translatable(allowed ? "message.accesscontrol.granted" : "message.accesscontrol.denied", state.get(REQUIRED_LEVEL)));
+    }
+    protected ActionResult feedback(boolean allowed, BlockState state, World world, BlockPos pos, PlayerEntity player, Text message) {
         if (!(world.getBlockEntity(pos) instanceof ReaderBlockEntity reader)) return ActionResult.FAIL;
         long now = world.getTime();
         reader.feedbackUntil = now + AccessRules.PULSE_TICKS;
@@ -94,8 +98,7 @@ public final class ReaderBlock extends HorizontalFacingBlock implements BlockEnt
         world.scheduleBlockTick(pos, this, AccessRules.PULSE_TICKS);
         world.playSound(null, pos, allowed ? AccessControl.GRANTED : AccessControl.DENIED,
                 SoundCategory.BLOCKS, 0.65f, 1);
-        player.sendMessage(Text.translatable(allowed ? "message.accesscontrol.granted" : "message.accesscontrol.denied",
-                state.get(REQUIRED_LEVEL)).formatted(allowed ? Formatting.GREEN : Formatting.RED), true);
+        player.sendMessage(message.copy().formatted(allowed ? Formatting.GREEN : Formatting.RED), true);
         return ActionResult.SUCCESS;
     }
     @Override protected void scheduledTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {

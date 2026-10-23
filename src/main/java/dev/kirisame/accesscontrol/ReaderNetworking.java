@@ -16,6 +16,9 @@ import net.minecraft.util.math.BlockPos;
 
 public final class ReaderNetworking {
     private ReaderNetworking() { }
+    public static boolean canConfigure(ServerPlayerEntity player) {
+        return player.hasPermissionLevel(1) && player.interactionManager.getGameMode() == net.minecraft.world.GameMode.CREATIVE;
+    }
 
     public record OpenConfig(BlockPos pos, Identifier dimension, int level) implements CustomPayload {
         public static final Id<OpenConfig> ID = new Id<>(AccessControl.id("open_config"));
@@ -36,12 +39,13 @@ public final class ReaderNetworking {
         PayloadTypeRegistry.playS2C().register(OpenConfig.ID, OpenConfig.CODEC);
         PayloadTypeRegistry.playC2S().register(SetLevel.ID, SetLevel.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(SetLevel.ID, (payload, context) -> configure(context.player(), payload));
+        BiometricNetworking.register();
     }
 
     static void configure(ServerPlayerEntity player, SetLevel payload) {
         var world = player.getEntityWorld();
         // Every condition is checked server-side; a modified client cannot bypass clearance.
-        if (!player.hasPermissionLevel(1) || player.isSpectator()
+        if (!canConfigure(player)
                 || !AccessRules.validLevel(payload.level())
                 || !world.getRegistryKey().getValue().equals(payload.dimension())
                 || !world.isInBuildLimit(payload.pos()) || !world.isChunkLoaded(payload.pos())
@@ -64,12 +68,16 @@ public final class ReaderNetworking {
     }
 
     public static void open(ServerPlayerEntity player, BlockPos pos) {
-        if (!player.hasPermissionLevel(1)) {
+        if (!canConfigure(player)) {
             player.sendMessage(Text.translatable("message.accesscontrol.op_only").formatted(Formatting.RED), true);
             return;
         }
         var world = player.getEntityWorld();
         BlockState state = world.getBlockState(pos);
+        if (state.isOf(AccessControl.BIOMETRIC_READER)) {
+            BiometricNetworking.open(player, pos);
+            return;
+        }
         if (state.isOf(AccessControl.READER) || state.isOf(AccessControl.SUBWAY_GATE)) {
             ServerPlayNetworking.send(player, new OpenConfig(pos, world.getRegistryKey().getValue(), state.get(ReaderBlock.REQUIRED_LEVEL)));
         }

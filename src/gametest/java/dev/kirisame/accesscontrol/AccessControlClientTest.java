@@ -2,6 +2,8 @@ package dev.kirisame.accesscontrol;
 
 import dev.kirisame.accesscontrol.client.ReaderConfigScreen;
 import dev.kirisame.accesscontrol.client.SlidingDoorRenderer;
+import dev.kirisame.accesscontrol.client.BiometricConfigScreen;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -182,6 +184,75 @@ public final class AccessControlClientTest implements FabricClientGameTest {
                 var state = (SlidingDoorRenderer.State) client.getBlockEntityRenderDispatcher()
                         .getRenderState(client.world.getBlockEntity(gate.east()), 1, null);
                 if (state.faces().size() != before) throw new AssertionError("Connector did not disappear when adjacent gate was removed");
+            });
+
+            BlockPos biometric = new BlockPos(10, 92, 1);
+            server.runOnServer(s -> {
+                s.getOverworld().setBlockState(biometric.north(), Blocks.IRON_BLOCK.getDefaultState());
+                s.getOverworld().setBlockState(biometric, AccessControl.BIOMETRIC_READER.getDefaultState().with(ReaderBlock.FACING, Direction.SOUTH));
+            });
+            server.runCommand("tp @a 10.5 91 4.5 180 0");
+            context.runOnClient(client -> client.player.getInventory().setSelectedSlot(8));
+            context.waitTicks(5);
+            context.getInput().pressKey(options -> options.useKey);
+            context.waitFor(client -> client.world.getBlockState(biometric).get(ReaderBlock.STATUS) == 2);
+            context.runOnClient(client -> {
+                if (client.world.getBlockState(biometric).get(ReaderBlock.POWERED)) throw new AssertionError("Empty whitelist grants access");
+                client.inGameHud.getChatHud().clear(false);
+            });
+            context.takeScreenshot("biometric_denied");
+            context.getInput().holdKey(options -> options.sneakKey);
+            context.waitTick();
+            context.getInput().pressKey(options -> options.useKey);
+            context.getInput().releaseKey(options -> options.sneakKey);
+            context.waitForScreen(BiometricConfigScreen.class);
+            String name = context.computeOnClient(client -> client.player.getName().getString());
+            context.clickScreenButton("[ ] " + name);
+            java.util.UUID offline = java.util.UUID.fromString("a0b1c2d3-0000-4000-8000-000000000001");
+            context.runOnClient(client -> {
+                for (var widget : client.currentScreen.children()) if (widget instanceof TextFieldWidget field) field.setText(offline.toString());
+            });
+            context.clickScreenButton("screen.accesscontrol.add");
+            context.takeScreenshot("biometric_whitelist_config");
+            context.clickScreenButton("screen.accesscontrol.save");
+            context.waitTicks(5);
+            server.runOnServer(s -> {
+                var entity = (BiometricReaderBlockEntity) s.getOverworld().getBlockEntity(biometric);
+                if (entity.players().size() != 2 || !entity.allows(offline)
+                        || !entity.allows(s.getPlayerManager().getPlayerList().getFirst().getUuid()))
+                    throw new AssertionError("Whitelist screen failed to save both online player and offline UUID");
+            });
+            context.getInput().pressKey(options -> options.useKey);
+            context.waitFor(client -> client.world.getBlockState(biometric).get(ReaderBlock.POWERED));
+            context.takeScreenshot("biometric_granted");
+            context.waitTicks(25);
+
+            // Open as creative OP, then switch mode before clicking Save.
+            context.getInput().holdKey(options -> options.sneakKey);
+            context.waitTick();
+            context.getInput().pressKey(options -> options.useKey);
+            context.getInput().releaseKey(options -> options.sneakKey);
+            context.waitForScreen(BiometricConfigScreen.class);
+            server.runCommand("gamemode survival @a");
+            context.waitTicks(3);
+            context.clickScreenButton("[+] " + name);
+            context.clickScreenButton("screen.accesscontrol.save");
+            context.runOnClient(client -> ClientPlayNetworking.send(new ReaderNetworking.SetLevel(reader,
+                    client.world.getRegistryKey().getValue(), 1)));
+            context.waitTicks(5);
+            server.runOnServer(s -> {
+                var entity = (BiometricReaderBlockEntity) s.getOverworld().getBlockEntity(biometric);
+                if (entity.players().size() != 2) throw new AssertionError("Survival OP changed whitelist from an already-open screen");
+                if (s.getOverworld().getBlockState(reader).get(ReaderBlock.REQUIRED_LEVEL) != 4)
+                    throw new AssertionError("Survival OP forged a card-reader clearance update");
+            });
+            context.getInput().holdKey(options -> options.sneakKey);
+            context.waitTick();
+            context.getInput().pressKey(options -> options.useKey);
+            context.getInput().releaseKey(options -> options.sneakKey);
+            context.waitTicks(5);
+            context.runOnClient(client -> {
+                if (client.currentScreen != null) throw new AssertionError("Survival OP opened configuration");
             });
         }
     }

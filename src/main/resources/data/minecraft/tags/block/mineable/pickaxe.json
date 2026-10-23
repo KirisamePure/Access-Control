@@ -8,6 +8,7 @@
     "accesscontrol:windowed_sliding_tech_door",
     "accesscontrol:glass_sliding_tech_door",
     "accesscontrol:industrial_sliding_door",
-    "accesscontrol:subway_gate"
+    "accesscontrol:subway_gate",
+    "accesscontrol:biometric_reader"
   ]
 }

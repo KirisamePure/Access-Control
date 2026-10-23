@@ -422,6 +422,74 @@ def make_expansion():
         write_json(path, data)
 
 
+def make_biometrics():
+    variants = {}
+    for status, color in enumerate(['#61e0d7', '#45f294', '#ff555e']):
+        name = 'biometric_s' + str(status)
+        im = Image.new('RGBA', (32, 32), '#12272d'); d = ImageDraw.Draw(im)
+        d.rectangle((0, 0, 31, 31), outline='#91bdc3', width=2)
+        d.rectangle((3, 3, 28, 25), fill='#081920', outline='#335d69')
+        # Original fingerprint motif; cyan idle, green accepted, red denied.
+        for radius in (5, 9, 13, 17):
+            d.arc((16-radius//2, 14-radius//2, 16+radius//2, 14+radius//2), 165, 375, fill=color, width=1)
+        d.line((9, 13, 9, 19), fill=color)
+        d.line((12, 13, 12, 22), fill=color)
+        d.line((15, 15, 15, 23), fill=color)
+        d.line((18, 14, 18, 20), fill=color)
+        d.line((21, 14, 21, 18), fill=color)
+        d.rectangle((5, 28, 26, 29), fill=color)
+        texture('block/' + name, im)
+        elem = box([4, 3, 13], [12, 13, 16], '#body', '#front')
+        elem['faces']['north']['uv'] = [0, 0, 16, 16]
+        model('block/' + name, {'parent': 'minecraft:block/block', 'ambientocclusion': False,
+            'textures': {'body': 'accesscontrol:block/reader_body', 'front': 'accesscontrol:block/' + name,
+                         'particle': 'accesscontrol:block/reader_body'}, 'elements': [elem]})
+        for facing, rotation in [('north', 0), ('east', 90), ('south', 180), ('west', 270)]:
+            variants[f'facing={facing},status={status}'] = {'model': 'accesscontrol:block/' + name, 'y': rotation}
+    write_json(ASSETS / 'blockstates/biometric_reader.json', {'variants': variants})
+    model('block/biometric_reader', {'parent': 'accesscontrol:block/biometric_s0',
+        'display': {'gui': {'rotation': [25, 225, 0], 'translation': [0, 0, 0], 'scale': [1.4, 1.4, 1.4]}}})
+    item('biometric_reader', True)
+    write_json(DATA / 'loot_table/blocks/biometric_reader.json', {'type': 'minecraft:block', 'pools': [
+        {'rolls': 1, 'entries': [{'type': 'minecraft:item', 'name': 'accesscontrol:biometric_reader'}],
+         'conditions': [{'condition': 'minecraft:survives_explosion'}]}]})
+    write_json(DATA / 'recipe/biometric_reader.json', {'type': 'minecraft:crafting_shaped', 'category': 'redstone',
+        'pattern': ['QEQ', 'RCR', 'III'], 'key': {'Q': 'minecraft:quartz', 'E': 'minecraft:ender_pearl',
+            'R': 'minecraft:redstone', 'C': 'accesscontrol:card_reader', 'I': 'minecraft:iron_ingot'},
+        'result': {'id': 'accesscontrol:biometric_reader', 'count': 1}})
+    tag = ROOT / 'data/minecraft/tags/block/mineable/pickaxe.json'
+    data = json.loads(tag.read_text())
+    if 'accesscontrol:biometric_reader' not in data['values']: data['values'].append('accesscontrol:biometric_reader')
+    write_json(tag, data)
+    zh = {
+        'block.accesscontrol.biometric_reader': '生物识别门禁',
+        'message.accesscontrol.op_only': '只有创造模式的 OP 可以修改门禁配置',
+        'message.accesscontrol.config_rejected': '配置失败：请靠近门禁，并确认处于创造模式且拥有 OP 权限',
+        'message.accesscontrol.use_card': '请手持门禁卡刷卡；创造模式 OP 潜行右键可配置',
+        'message.accesscontrol.empty_hands': '请腾空双手，再右键进行生物识别',
+        'message.accesscontrol.bio_granted': '身份识别通过 · 欢迎通行',
+        'message.accesscontrol.bio_denied': '身份识别失败 · 你不在此门禁的白名单中',
+        'message.accesscontrol.whitelist_saved': '生物识别白名单已保存，共 %s 人',
+        'screen.accesscontrol.biometric_title': '生物识别 · 玩家白名单',
+        'screen.accesscontrol.whitelist_hint': '点击玩家添加或移除；[+] 表示已授权',
+        'screen.accesscontrol.whitelist_count': '白名单：%s / 64 人',
+        'screen.accesscontrol.player_input': '在线玩家名或完整 UUID',
+        'screen.accesscontrol.add': '添加',
+        'screen.accesscontrol.invalid_player': '请选择在线玩家，或输入完整 UUID',
+        'screen.accesscontrol.whitelist_full': '白名单最多允许 64 人',
+    }
+    en = dict(zip(zh, [
+        'Biometric Reader', 'Only creative-mode operators can configure access control',
+        'Configuration rejected: stay nearby and use creative mode with OP permission',
+        'Use an access card; creative operators can sneak-use to configure',
+        'Empty both hands to use biometric identification', 'Identity verified · Access granted',
+        'Access denied · Your identity is not whitelisted', 'Biometric whitelist saved: %s player(s)',
+        'Biometric Reader Whitelist', 'Click a player to toggle; [+] means allowed', 'Allowed: %s / 64',
+        'Online name or full UUID', 'Add', 'Select an online player or enter a full UUID', 'Maximum 64 allowed players']))
+    for lang, additions in [('zh_cn', zh), ('en_us', en)]:
+        path = ASSETS / f'lang/{lang}.json'; data = json.loads(path.read_text()); data.update(additions); write_json(path, data)
+
+
 if __name__ == '__main__':
-    make_cards(); make_readers(); make_doors(); make_data(); make_language(); make_sounds(); make_expansion()
+    make_cards(); make_readers(); make_doors(); make_data(); make_language(); make_sounds(); make_expansion(); make_biometrics()
     print('Generated textures, models, blockstates, recipes, loot, translations and sounds.')

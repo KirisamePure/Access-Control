@@ -37,6 +37,8 @@ public final class AccessControl implements ModInitializer {
 
     public static final ReaderBlock READER = registerBlock("card_reader", new ReaderBlock(
             settings("card_reader").strength(3).luminance(state -> state.get(ReaderBlock.STATUS) == 0 ? 0 : 10)));
+    public static final BiometricReaderBlock BIOMETRIC_READER = registerBlock("biometric_reader", new BiometricReaderBlock(
+            settings("biometric_reader").strength(3).luminance(state -> state.get(ReaderBlock.STATUS) == 0 ? 0 : 10)));
     public static final MetalDoorBlock IRON_DOOR = registerBlock("sealed_iron_door", new MetalDoorBlock(settings("sealed_iron_door")));
     public static final MetalDoorBlock IRON_WINDOW_DOOR = registerBlock("windowed_iron_door", new MetalDoorBlock(settings("windowed_iron_door")));
     public static final SlidingDoorBlock TECH_DOOR = registerBlock("sliding_tech_door", new SlidingDoorBlock(settings("sliding_tech_door")));
@@ -65,6 +67,9 @@ public final class AccessControl implements ModInitializer {
     public static final BlockEntityType<ReaderBlockEntity> READER_ENTITY = Registry.register(
             Registries.BLOCK_ENTITY_TYPE, id("card_reader"),
             FabricBlockEntityTypeBuilder.create(ReaderBlockEntity::new, READER).build());
+    public static final BlockEntityType<BiometricReaderBlockEntity> BIOMETRIC_ENTITY = Registry.register(
+            Registries.BLOCK_ENTITY_TYPE, id("biometric_reader"),
+            FabricBlockEntityTypeBuilder.create(BiometricReaderBlockEntity::new, BIOMETRIC_READER).build());
     public static final SoundEvent GRANTED = sound("reader_granted");
     public static final SoundEvent DENIED = sound("reader_denied");
     public static final SoundEvent PNEUMATIC_OPEN = sound("pneumatic_open");
@@ -86,7 +91,7 @@ public final class AccessControl implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        List<Block> blocks = List.of(READER, IRON_DOOR, IRON_WINDOW_DOOR, TECH_DOOR, TECH_WINDOW_DOOR,
+        List<Block> blocks = List.of(READER, BIOMETRIC_READER, IRON_DOOR, IRON_WINDOW_DOOR, TECH_DOOR, TECH_WINDOW_DOOR,
                 GLASS_DOOR, INDUSTRIAL_DOOR, SUBWAY_GATE);
         for (Block block : blocks) {
             Identifier id = Registries.BLOCK.getId(block);
@@ -106,7 +111,7 @@ public final class AccessControl implements ModInitializer {
         UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
             var state = world.getBlockState(hit.getBlockPos());
             if (player.isSpectator() || !player.isSneaking()
-                    || !(state.isOf(READER) || state.isOf(SUBWAY_GATE))) return ActionResult.PASS;
+                    || !(state.isOf(READER) || state.isOf(SUBWAY_GATE) || state.isOf(BIOMETRIC_READER))) return ActionResult.PASS;
             if (hand == Hand.MAIN_HAND && player instanceof ServerPlayerEntity serverPlayer) {
                 ReaderNetworking.open(serverPlayer, state.isOf(SUBWAY_GATE)
                         ? SubwayGateBlock.center(state, hit.getBlockPos()) : hit.getBlockPos());
